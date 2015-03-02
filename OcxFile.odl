@@ -1,0 +1,71 @@
+// OcxFile.odl : type library source for ActiveX Control project.
+
+// This file will be processed by the Make Type Library (mktyplib) tool to
+// produce the type library (OcxFile.tlb) that will become a resource in
+// OcxFile.ocx.
+
+#include <olectl.h>
+#include <idispids.h>
+
+[ uuid(778A60AE-A11E-4DE2-8E5C-13C96E243F5B), version(1.0),
+  helpfile("OcxFile.hlp"),
+  helpstring("OcxFile ActiveX Control module"),
+  control ]
+library OCXFILELib
+{
+	importlib(STDOLE_TLB);
+	importlib(STDTYPE_TLB);
+
+	//  Primary dispatch interface for COcxFileCtrl
+
+	[ uuid(B29222EA-7DB7-4F0A-AF18-793FCC0F2309),
+	  helpstring("Dispatch interface for OcxFile Control"), hidden ]
+	dispinterface _DOcxFile
+	{
+		properties:
+			// NOTE - ClassWizard will maintain property information here.
+			//    Use extreme caution when editing this section.
+			//{{AFX_ODL_PROP(COcxFileCtrl)
+			//}}AFX_ODL_PROP
+
+		methods:
+			// NOTE - ClassWizard will maintain method information here.
+			//    Use extreme caution when editing this section.
+			//{{AFX_ODL_METHOD(COcxFileCtrl)
+			[id(1)] BSTR create(BSTR path);
+			[id(2)] BSTR read(BSTR file);
+			//}}AFX_ODL_METHOD
+
+			[id(DISPID_ABOUTBOX)] void AboutBox();
+	};
+
+	//  Event dispatch interface for COcxFileCtrl
+
+	[ uuid(F0B787D0-2D92-4FE1-9DF3-CE7DD30DF18F),
+	  helpstring("Event interface for OcxFile Control") ]
+	dispinterface _DOcxFileEvents
+	{
+		properties:
+			//  Event interface has no properties
+
+		methods:
+			// NOTE - ClassWizard will maintain event information here.
+			//    Use extreme caution when editing this section.
+			//{{AFX_ODL_EVENT(COcxFileCtrl)
+			//}}AFX_ODL_EVENT
+	};
+
+	//  Class information for COcxFileCtrl
+
+	[ uuid(3F08C971-449F-4588-853F-9E25DD73879B),
+	  helpstring("OcxFile Control"), control ]
+	coclass OcxFile
+	{
+		[default] dispinterface _DOcxFile;
+		[default, source] dispinterface _DOcxFileEvents;
+	};
+
+
+	//{{AFX_APPEND_ODL}}
+	//}}AFX_APPEND_ODL}}
+};
