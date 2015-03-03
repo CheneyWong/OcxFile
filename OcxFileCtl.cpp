@@ -5,6 +5,8 @@
 #include "OcxFileCtl.h"
 #include "OcxFilePpg.h"
 #include "RetMsg.h"
+#include "windows.h"
+#include "Winuser.h"
 
 #include "string.h"
 #include "stdlib.h"
@@ -24,9 +26,11 @@ IMPLEMENT_DYNCREATE(COcxFileCtrl, COleControl)
 
 BEGIN_MESSAGE_MAP(COcxFileCtrl, COleControl)
 	//{{AFX_MSG_MAP(COcxFileCtrl)
-	// NOTE - ClassWizard will add and remove message map entries
-	//    DO NOT EDIT what you see in these blocks of generated code !
+	ON_WM_HELPINFO()
+	ON_WM_QUERYENDSESSION()
+	ON_WM_ACTIVATE()
 	//}}AFX_MSG_MAP
+	ON_MESSAGE(MSG_FIRE,OnMsgFire)
 	ON_OLEVERB(AFX_IDS_VERB_PROPERTIES, OnProperties)
 END_MESSAGE_MAP()
 
@@ -38,6 +42,7 @@ BEGIN_DISPATCH_MAP(COcxFileCtrl, COleControl)
 	//{{AFX_DISPATCH_MAP(COcxFileCtrl)
 	DISP_FUNCTION(COcxFileCtrl, "create", create, VT_BSTR, VTS_BSTR)
 	DISP_FUNCTION(COcxFileCtrl, "read", read, VT_BSTR, VTS_BSTR)
+	DISP_FUNCTION(COcxFileCtrl, "write", write, VT_BSTR, VTS_BSTR VTS_BSTR)
 	//}}AFX_DISPATCH_MAP
 	DISP_FUNCTION_ID(COcxFileCtrl, "AboutBox", DISPID_ABOUTBOX, AboutBox, VT_EMPTY, VTS_NONE)
 END_DISPATCH_MAP()
@@ -48,8 +53,7 @@ END_DISPATCH_MAP()
 
 BEGIN_EVENT_MAP(COcxFileCtrl, COleControl)
 	//{{AFX_EVENT_MAP(COcxFileCtrl)
-	// NOTE - ClassWizard will add and remove event map entries
-	//    DO NOT EDIT what you see in these blocks of generated code !
+	EVENT_CUSTOM("optdone", FireOptDone, VTS_BSTR)
 	//}}AFX_EVENT_MAP
 END_EVENT_MAP()
 
@@ -98,6 +102,9 @@ static const DWORD BASED_CODE _dwOcxFileOleMisc =
 IMPLEMENT_OLECTLTYPE(COcxFileCtrl, IDS_OCXFILE, _dwOcxFileOleMisc)
 
 
+
+class CWinThread * gthid = NULL;
+
 // 通用函数
 
 // 调试
@@ -109,17 +116,20 @@ void logForPrj ( char *desc )
 	char buf[256];
 
 	GetLocalTime ( &st );
-	sprintf ( buf, "C:\\LOG\\%04d%02d%02d.log", 
+	sprintf ( buf, "c:\\LOG\\%04d%02d%02d.log", 
 			  st.wYear, st.wMonth, st.wDay );
-	hFile = CreateFile(buf, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFile = CreateFile(buf, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
+	{
 		return;
+	}
+	
 	SetFilePointer(hFile, 0, NULL, FILE_END);
 
 	sprintf ( buf, "[%04d-%02d-%02d %02d:%02d:%02d] ", 
 			  st.wYear, st.wMonth, st.wDay, 
 			  st.wHour, st.wMinute, st.wSecond );
-	WriteFile(hFile, buf, strlen ( buf ), (LPDWORD)&writeLen, NULL);
+	DWORD ret = WriteFile(hFile, buf, strlen ( buf ), (LPDWORD)&writeLen, NULL);
 
 	len = strlen ( desc );
 	WriteFile(hFile, desc, len, (LPDWORD)&writeLen, NULL);
@@ -150,7 +160,7 @@ CString Array2HexString (char * buff, DWORD len )
 	CString ret="";
 	for(DWORD i=0; i< len; i++)
 	{
-		sprintf(str,"%0X",buff[i]);
+		sprintf(str,"%02X",buff[i]);
 		ret += str;
 	}
 	return ret;
@@ -277,19 +287,43 @@ void COcxFileCtrl::AboutBox()
 
 /////////////////////////////////////////////////////////////////////////////
 // COcxFileCtrl message handlers
+LRESULT COcxFileCtrl::OnMsgFire(WPARAM wParam, LPARAM lParam)
+{
+	logForPrjEx("%d,fire !",__LINE__);
+	FireOptDone("287");
+	return 0;
+}
 
 // 创建文件
 BSTR COcxFileCtrl::create(LPCTSTR path) 
 {
 	CString strResult;
 	// TODO: Add your dispatch handler code here
+	//FireOptDone("296");
+
+	//this->FireOptDone("233");
+	gthid = AfxGetThread();
+	int i = gthid->PostThreadMessage(MSG_FIRE, 0, 0);
+
+	//logForPrjEx("postmsg:%d",i);
+	//logForPrjEx("gthid:%d",(int)gthid);
+
+	// 测试线程和事件触发
+	CWinThread* thread = AfxBeginThread(WorkThreadFunction,this);
+	logForPrjEx("CWinThread:%d",(int)thread);
+	//thread = AfxBeginThread(WorkThreadFunction,this,THREAD_PRIORITY_NORMAL,0,0,NULL); 
+	
+
+
 	HANDLE hFile;
 	CRetMsg ret;
 	logForPrjEx("path:%s", path);
 	hFile = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
+	{
 		ret.retcode = GetLastError();
 		ret.retmsg = "fail";
+	}
 	CloseHandle(hFile);
 	ret.retcode = 0;
 	ret.retmsg = "success";
@@ -335,4 +369,75 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 
 	strResult = ret.toJson();
 	return strResult.AllocSysString();
+}
+
+UINT COcxFileCtrl::WorkThreadFunction(LPVOID pParam)
+{
+
+	Sleep(1000);
+	 ::PostMessage(((COcxFileCtrl*)pParam)->m_hWnd,MSG_FIRE,0,0);
+	// 并发 log 有问题
+	//SendMessage(MSG_FIRE, 0, 0);
+	logForPrjEx("%d:%d",__LINE__,(int)gthid);
+	logForPrjEx("%d:%d",__LINE__,(int)AfxGetThread());
+	return 0;
+} 
+
+
+BSTR COcxFileCtrl::write(LPCTSTR file, LPCTSTR data) 
+{
+	CString strResult;
+	HANDLE hFile;
+	CRetMsg ret;
+	int writeLen;
+	
+
+	hFile = CreateFile(file, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if(hFile == INVALID_HANDLE_VALUE)
+	{
+		ret.retcode = GetLastError();
+		ret.retmsg = "fail";
+	}
+	else
+	{
+		SetFilePointer(hFile, 0, NULL, FILE_END);
+		char *buffer = new char[_tcslen(data)+ 1]; 
+		int len = HexString2Array(buffer,(LPSTR)data);
+
+		DWORD r = WriteFile(hFile, buffer, len, (LPDWORD)&writeLen, NULL);
+		ret.retcode = 0;
+		ret.retmsg = "success";
+		delete[] buffer;
+	}
+
+
+	CloseHandle(hFile);
+	strResult = ret.toJson();
+	return strResult.AllocSysString();
+}
+
+BOOL COcxFileCtrl::OnHelpInfo(HELPINFO* pHelpInfo) 
+{
+	// TODO: Add your message handler code here and/or call default
+	logForPrjEx("help");
+	return COleControl::OnHelpInfo(pHelpInfo);
+}
+
+BOOL COcxFileCtrl::OnQueryEndSession() 
+{
+	if (!COleControl::OnQueryEndSession())
+		return FALSE;
+	
+	// TODO: Add your specialized query end session code here
+	logForPrjEx("help");
+	
+	return TRUE;
+}
+
+void COcxFileCtrl::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized) 
+{
+	COleControl::OnActivate(nState, pWndOther, bMinimized);
+	
+	// TODO: Add your message handler code here
+	
 }

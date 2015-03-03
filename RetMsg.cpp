@@ -43,7 +43,7 @@ CFileInfo::~CFileInfo()
 }
 
 // 获取 json 格式
-CString CRetMsg::toJson(void)
+CString CFileInfo::toJson(void)
 {
 	CString  ret;
 	ret.Format(_T("{\"type\":%s,\"data\":%s,\"info\":%s}"), type, data, info);

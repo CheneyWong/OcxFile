@@ -9,12 +9,22 @@
 	<div style="display:none;">
 		<OBJECT id="OcxFile" name="OcxFile" classid="clsid:3F08C971-449F-4588-853F-9E25DD73879B" data="C:/Windows/System32/OcxFile.ocx"></OBJECT>
 	</div>
+	<p>test</p>
+
+<SCRIPT type="text/javascript" FOR="OcxFile" EVENT="optdone(msg)" >
+     alert(msg);
+</SCRIPT>
+
 	<script type="text/javascript">
-		var OcxFile = document.getElementById("OcxFile");
-alert("123");		
+	$(document).ready(function(){
+			var OcxFile = document.getElementById("OcxFile");		
 alert(OcxFile.create("D:\\100\\1000\\10000"));
+});
+
 		
 	</script>
+
+
 
 	</body>
 </html>

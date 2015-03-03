@@ -5,6 +5,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#define MSG_FIRE WM_USER+30
 // OcxFileCtl.h : Declaration of the COcxFileCtrl ActiveX Control class.
 
 /////////////////////////////////////////////////////////////////////////////
@@ -38,8 +39,9 @@ protected:
 
 // Message maps
 	//{{AFX_MSG(COcxFileCtrl)
-		// NOTE - ClassWizard will add and remove member functions here.
-		//    DO NOT EDIT what you see in these blocks of generated code !
+	afx_msg BOOL OnHelpInfo(HELPINFO* pHelpInfo);
+	afx_msg BOOL OnQueryEndSession();
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
@@ -47,15 +49,23 @@ protected:
 	//{{AFX_DISPATCH(COcxFileCtrl)
 	afx_msg BSTR create(LPCTSTR path);
 	afx_msg BSTR read(LPCTSTR file);
+	afx_msg BSTR write(LPCTSTR file, LPCTSTR data);
 	//}}AFX_DISPATCH
 	DECLARE_DISPATCH_MAP()
 
 	afx_msg void AboutBox();
+	afx_msg LRESULT OnMsgFire(WPARAM wParam, LPARAM lParam);
+	
 
 // Event maps
 	//{{AFX_EVENT(COcxFileCtrl)
+	void FireOptDone(LPCTSTR msg)
+		{FireEvent(eventidOptdone,EVENT_PARAM(VTS_BSTR), msg);}
 	//}}AFX_EVENT
 	DECLARE_EVENT_MAP()
+
+// Ïß³Ìº¯Êý
+	static UINT WorkThreadFunction(LPVOID pParam);
 
 // Dispatch and event IDs
 public:
@@ -63,6 +73,8 @@ public:
 	//{{AFX_DISP_ID(COcxFileCtrl)
 	dispidCreate = 1L,
 	dispidRead = 2L,
+	dispidWrite = 3L,
+	eventidOptdone = 1L,
 	//}}AFX_DISP_ID
 	};
 };

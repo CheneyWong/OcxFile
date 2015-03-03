@@ -34,6 +34,7 @@ library OCXFILELib
 			//{{AFX_ODL_METHOD(COcxFileCtrl)
 			[id(1)] BSTR create(BSTR path);
 			[id(2)] BSTR read(BSTR file);
+			[id(3)] BSTR write(BSTR file, BSTR data);
 			//}}AFX_ODL_METHOD
 
 			[id(DISPID_ABOUTBOX)] void AboutBox();
@@ -52,6 +53,7 @@ library OCXFILELib
 			// NOTE - ClassWizard will maintain event information here.
 			//    Use extreme caution when editing this section.
 			//{{AFX_ODL_EVENT(COcxFileCtrl)
+			[id(1)] void optdone(BSTR msg);
 			//}}AFX_ODL_EVENT
 	};
 
