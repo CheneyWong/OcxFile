@@ -21,3 +21,31 @@ CString CRetMsg::toJson(void)
 	ret.Format(_T("{\"retcode\":%d,\"retmsg\":%s}"), retcode, retmsg);
 	return ret;
 }
+
+//////////////////////////////////////////////////////////////////////
+// CFileInfo Class
+//////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+CFileInfo::CFileInfo()
+{
+	type = "";
+	data = "";
+	info = "";
+}
+
+CFileInfo::~CFileInfo()
+{
+
+}
+
+// 获取 json 格式
+CString CRetMsg::toJson(void)
+{
+	CString  ret;
+	ret.Format(_T("{\"type\":%s,\"data\":%s,\"info\":%s}"), type, data, info);
+	return ret;
+}
