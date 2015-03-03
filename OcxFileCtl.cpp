@@ -6,6 +6,9 @@
 #include "OcxFilePpg.h"
 #include "RetMsg.h"
 
+#include "string.h"
+#include "stdlib.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -136,7 +139,11 @@ void logForPrjEx ( char *format, ... )
 	logForPrj ( buf );
 }
 
-CString Hex2Str(char * buff, DWORD len )
+// 将数据转成十六进制字符串
+// buff - 数据
+// len - 数据个数
+// 字符串
+CString Array2HexString (char * buff, DWORD len )
 {
 	DWORD strlen = len*2;
 	char str[3];
@@ -148,6 +155,30 @@ CString Hex2Str(char * buff, DWORD len )
 	}
 	return ret;
 }
+
+// 将十六进制字符串转成数据
+// 输出的数据
+// 输入的字符串
+// 成功转换的个数
+int HexString2Array(char *buff,char *str)
+{
+	int i;
+	int len = strlen(str);
+	char slice[3];
+	if( len % 2 )
+	{
+		return -1;
+	}
+	for( i=0 ; i<len ; i+=2 )
+	{
+		memcpy(slice,str+i,2);
+		slice[2] = 0;
+		buff[i/2] = 0xFF & strtol(slice, NULL, 16);
+	}
+	return i/2;
+}
+
+
 
 /////////////////////////////////////////////////////////////////////////////
 // COcxFileCtrl::COcxFileCtrlFactory::UpdateRegistry -
@@ -247,6 +278,7 @@ void COcxFileCtrl::AboutBox()
 /////////////////////////////////////////////////////////////////////////////
 // COcxFileCtrl message handlers
 
+// 创建文件
 BSTR COcxFileCtrl::create(LPCTSTR path) 
 {
 	CString strResult;
@@ -265,6 +297,7 @@ BSTR COcxFileCtrl::create(LPCTSTR path)
 	return strResult.AllocSysString();
 }
 
+// 文件内容读取
 BSTR COcxFileCtrl::read(LPCTSTR file) 
 {
 	CString strResult;
@@ -273,7 +306,7 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 	CRetMsg ret;
 	logForPrjEx("read file:%s", file);
     pfile = ::CreateFile(file, GENERIC_READ, 0, NULL, OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL, NULL);    //用这个函数比OpenFile好
+        FILE_ATTRIBUTE_NORMAL, NULL);
     if(pfile == INVALID_HANDLE_VALUE)
     {
 		ret.retcode = GetLastError();
@@ -290,7 +323,7 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 		logForPrjEx("内容读取完成");
 
 		// 字符转义
-		ret.retmsg = Hex2Str(buffer,filesize);
+		ret.retmsg = Array2HexString (buffer,filesize);
 		ret.retcode = 0;
 		logForPrjEx("内容转义完成");
 
