@@ -300,6 +300,7 @@ BSTR COcxFileCtrl::create(LPCTSTR path)
 	CString strResult;
 	// TODO: Add your dispatch handler code here
 	//FireOptDone("296");
+	::PostMessage(this->m_hWnd,MSG_FIRE,0,0);
 
 	//this->FireOptDone("233");
 	gthid = AfxGetThread();

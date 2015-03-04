@@ -5,7 +5,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#define MSG_FIRE WM_USER+30
+#define MSG_FIRE (WM_USER+100)
 // OcxFileCtl.h : Declaration of the COcxFileCtrl ActiveX Control class.
 
 /////////////////////////////////////////////////////////////////////////////
@@ -43,6 +43,7 @@ protected:
 	afx_msg BOOL OnQueryEndSession();
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	//}}AFX_MSG
+	afx_msg LRESULT OnMsgFire(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 
 // Dispatch maps
@@ -54,7 +55,7 @@ protected:
 	DECLARE_DISPATCH_MAP()
 
 	afx_msg void AboutBox();
-	afx_msg LRESULT OnMsgFire(WPARAM wParam, LPARAM lParam);
+	
 	
 
 // Event maps
