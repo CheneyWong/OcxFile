@@ -6,6 +6,7 @@ CRetMsg::CRetMsg(void)
 	: retcode(0)
 {
 	retmsg = "";
+	opt = "";
 }
 
 
@@ -18,7 +19,8 @@ CRetMsg::~CRetMsg(void)
 CString CRetMsg::toJson(void)
 {
 	CString  ret;
-	ret.Format(_T("{\"retcode\":\"%d\",\"retmsg\":\"%s\"}"), retcode, retmsg);
+	ret.Format(_T("{\"opt\":\"%s\",\"retcode\":\"%d\",\"retmsg\":\"%s\"}"),
+		opt, retcode, retmsg);
 	return ret;
 }
 
@@ -46,7 +48,8 @@ CFileInfo::~CFileInfo()
 CString CFileInfo::toJson(void)
 {
 	CString  ret;
-	ret.Format(_T("{\"type\":\"%s\",\"data\":\"%s\",\"info\":\"%s\"}"), type, data, info);
+	ret.Format(_T("{\"type\":\"%s\",\"data\":\"%s\",\"info\":\"%s\"}"),
+		type, data, info);
 	return ret;
 }/////////////////////////////////////////////////////////////////////////////
 // CWorkInfo

@@ -10,6 +10,7 @@ public:
 	CString toJson(void);
 	DWORD retcode;
 	CString retmsg;
+	CString opt;
 };
 
 // 文件信息格式

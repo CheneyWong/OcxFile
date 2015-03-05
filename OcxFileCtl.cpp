@@ -7,6 +7,8 @@
 #include "Msg.h"
 #include "windows.h"
 #include "Winuser.h"
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
 
 #include "string.h"
 #include "stdlib.h"
@@ -188,7 +190,39 @@ int HexString2Array(char *buff,char *str)
 	return i/2;
 }
 
+// 递归创建文件夹
+BOOL CreateDeepDirectory(LPCTSTR lpPathName,        //directory name
+LPSECURITY_ATTRIBUTES lpSecurityAttributes  // SD
+)
+{
+	if(PathFileExists(lpPathName))       //如果目录已存在，直接返回
+	{
+		return TRUE;
+	}
 
+	CString strPath = "";
+	char pszSrc[MAX_PATH] = {0};
+	strcpy(pszSrc, lpPathName);
+	char *ptoken = strtok(pszSrc, "\\");
+	while(ptoken)
+	{
+		strPath += ptoken;
+		strPath += "\\";
+		if(!PathFileExists(strPath))  
+		{
+			if(!CreateDirectory(strPath, lpSecurityAttributes))
+			{
+				DWORD dw = GetLastError(); 
+				CString strErr;
+				strErr.Format("CreateDirectory Failed: %d", dw);
+				AfxMessageBox(strErr);
+				return FALSE;
+			}
+		}
+		ptoken = strtok(NULL, "\\");
+	}
+	return TRUE;
+} 
 
 /////////////////////////////////////////////////////////////////////////////
 // COcxFileCtrl::COcxFileCtrlFactory::UpdateRegistry -
@@ -295,50 +329,82 @@ LRESULT COcxFileCtrl::OnMsgFire(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// 创建文件
+// 创建文件夹 阻塞式
+// 递归方式
 BSTR COcxFileCtrl::create(LPCTSTR path) 
 {
 	CString strResult;
-	// TODO: Add your dispatch handler code here
-	//FireOptDone("296");
-	//::PostMessage(this->m_hWnd,MSG_FIRE,0,0);
-	//logForPrjEx("hWnd 法 : %d",(int)(this->m_hWnd));
-
-	//this->FireOptDone("233");
-	//gthid = AfxGetThread();
-	//int i = gthid->PostThreadMessage(MSG_FIRE, 0, 0);
-
-	//logForPrjEx("postmsg:%d",i);
-	//logForPrjEx("gthid:%d",(int)gthid);
-
-	// 测试线程和事件触发
-	CWinThread* thread = AfxBeginThread(WriteThreadFunction,this);
-	logForPrjEx("CWinThread:%d",(int)thread);
-	//thread = AfxBeginThread(WorkThreadFunction,this,THREAD_PRIORITY_NORMAL,0,0,NULL); 
+	CFileFind cff;
+	CRetMsg ret;
+	ret.opt = "create";
 	
+	BOOL b = ::PathFileExists(path);
+	if (b)
+	{
+		ret.retcode = 1;
+		ret.retmsg = "path or file is exists";
+	}
+	else
+	{
+		b = CreateDeepDirectory(path,NULL);
+		if (b)
+		{
+			ret.retcode = 0;
+			ret.retmsg = "create success";
+		}
+		else
+		{
+			ret.retcode = GetLastError();
+			ret.retmsg = "create fail";
+		}
+	}
+	strResult = ret.toJson();
+	return strResult.AllocSysString();
+}
 
+// 文件写入线程
+UINT COcxFileCtrl::WriteThreadFunction(LPVOID pParam)
+{
+	CWorkInfo *wi = (CWorkInfo *)pParam;
+	COcxFileCtrl *who = (COcxFileCtrl*)wi->who;
+	CString file = wi->para1;
+	CString data = wi->para2;
+	delete wi;
+
+	logForPrjEx("开始任务，写入文件：%s", file );
 
 	HANDLE hFile;
 	CRetMsg ret;
-	logForPrjEx("path:%s", path);
-	hFile = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	ret.opt = "write hex";
+
+	int writeLen;
+	hFile = CreateFile(file, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
 		ret.retcode = GetLastError();
 		ret.retmsg = "fail";
 	}
-	CloseHandle(hFile);
-	ret.retcode = 0;
-	ret.retmsg = "success";
-	strResult = ret.toJson();
-	return strResult.AllocSysString();
-}
+	else
+	{
+		SetFilePointer(hFile, 0, NULL, FILE_END);
+		char *buffer = new char[data.GetLength()]; 
+		int len = HexString2Array(buffer,data.GetBuffer(data.GetLength()));
 
-UINT COcxFileCtrl::WriteThreadFunction(LPVOID pParam)
-{
+		DWORD r = WriteFile(hFile, buffer, len, (LPDWORD)&writeLen, NULL);
+		ret.retcode = 0;
+		ret.retmsg = "success";
+		delete[] buffer;
+	}
+
+	// 释放文件
+	CloseHandle(hFile);
+	// 触发消息 返回内容
+	::PostMessage( who->m_hWnd, MSG_FIRE, (unsigned int)(new CString(ret.toJson())), 0);
+
 	return 0;
 }
 
+// 文件读取线程
 UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
 {
 	CWorkInfo *wi = (CWorkInfo *)pParam;
@@ -347,12 +413,13 @@ UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
 	delete wi;
 
 	logForPrjEx("开始任务，读取文件：%s", objfile );
-    HANDLE pfile;
+    HANDLE hFile;
 	CRetMsg ret;
+	ret.opt = "read hex";
 
-    pfile = ::CreateFile(objfile, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+    hFile = ::CreateFile(objfile, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
-    if(pfile == INVALID_HANDLE_VALUE)
+    if(hFile == INVALID_HANDLE_VALUE)
     {
 		ret.retcode = GetLastError();
 		ret.retmsg = "fail";
@@ -360,10 +427,10 @@ UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
 	else
 	{	 
 		// 文件内容读取
-		DWORD filesize = GetFileSize(pfile, NULL);
+		DWORD filesize = GetFileSize(hFile, NULL);
 		char *buffer = new char[filesize+1];
 		DWORD readsize;
-		ReadFile(pfile, buffer, filesize, &readsize, NULL);
+		ReadFile(hFile, buffer, filesize, &readsize, NULL);
 		buffer[filesize] = 0;
 		logForPrjEx("内容读取完成");
 
@@ -376,14 +443,14 @@ UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
 	}
     
 	// 释放文件
-	CloseHandle(pfile);
+	CloseHandle(hFile);
 	// 触发消息 返回内容
 	::PostMessage( who->m_hWnd, MSG_FIRE, (unsigned int)(new CString(ret.toJson())), 0);
 	
 	return 0;
 } 
 
-// 文件内容读取 即时返回
+// 文件内容读取 HEX字符串 本函数即时返回
 // 文件读取完成之后触发事件 OptDone 返回包含文件信息的结构
 // 如果是文件夹 返回子目录的结构
 BSTR COcxFileCtrl::read(LPCTSTR file) 
@@ -396,7 +463,6 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 	wi->who = this;
 	wi->para1 = file;
 	CWinThread* thread = AfxBeginThread(ReadThreadFunction,wi);
-	logForPrjEx("CWinThread:%d",(int)thread);
 	if(NULL == thread)
 	{
 		ret.retcode = GetLastError();
@@ -414,34 +480,31 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 }
 
 
+// 文件内容写入 HEX字符串 本函数即时返回 
+// 文件读取完成之后触发事件 OptDone 返回操作信息
 BSTR COcxFileCtrl::write(LPCTSTR file, LPCTSTR data) 
 {
-	CString strResult;
-	HANDLE hFile;
+CString strResult;
 	CRetMsg ret;
-	int writeLen;
-	
 
-	hFile = CreateFile(file, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hFile == INVALID_HANDLE_VALUE)
+	// 开启独立的工作线程
+	CWorkInfo *wi = new CWorkInfo;
+	wi->who = this;
+	wi->para1 = file;
+	wi->para2 = data;
+	CWinThread* thread = AfxBeginThread(WriteThreadFunction,wi);
+	if(NULL == thread)
 	{
 		ret.retcode = GetLastError();
 		ret.retmsg = "fail";
 	}
 	else
 	{
-		SetFilePointer(hFile, 0, NULL, FILE_END);
-		char *buffer = new char[_tcslen(data)+ 1]; 
-		int len = HexString2Array(buffer,(LPSTR)data);
-
-		DWORD r = WriteFile(hFile, buffer, len, (LPDWORD)&writeLen, NULL);
 		ret.retcode = 0;
 		ret.retmsg = "success";
-		delete[] buffer;
 	}
-
-
-	CloseHandle(hFile);
+	// 即时返回调用情况
+	// 不包含数据
 	strResult = ret.toJson();
 	return strResult.AllocSysString();
 }
