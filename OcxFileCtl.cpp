@@ -4,7 +4,7 @@
 #include "OcxFile.h"
 #include "OcxFileCtl.h"
 #include "OcxFilePpg.h"
-#include "RetMsg.h"
+#include "Msg.h"
 #include "windows.h"
 #include "Winuser.h"
 
@@ -183,7 +183,7 @@ int HexString2Array(char *buff,char *str)
 	{
 		memcpy(slice,str+i,2);
 		slice[2] = 0;
-		buff[i/2] = 0xFF & strtol(slice, NULL, 16);
+		buff[i/2] = (unsigned char)(0xFF & strtol(slice, NULL, 16));
 	}
 	return i/2;
 }
@@ -290,7 +290,8 @@ void COcxFileCtrl::AboutBox()
 LRESULT COcxFileCtrl::OnMsgFire(WPARAM wParam, LPARAM lParam)
 {
 	logForPrjEx("%d,fire !",__LINE__);
-	FireOptDone("287");
+	CString *pret = (CString *)wParam;
+	FireOptDone((*pret));
 	return 0;
 }
 
@@ -300,17 +301,18 @@ BSTR COcxFileCtrl::create(LPCTSTR path)
 	CString strResult;
 	// TODO: Add your dispatch handler code here
 	//FireOptDone("296");
-	::PostMessage(this->m_hWnd,MSG_FIRE,0,0);
+	//::PostMessage(this->m_hWnd,MSG_FIRE,0,0);
+	//logForPrjEx("hWnd 法 : %d",(int)(this->m_hWnd));
 
 	//this->FireOptDone("233");
-	gthid = AfxGetThread();
-	int i = gthid->PostThreadMessage(MSG_FIRE, 0, 0);
+	//gthid = AfxGetThread();
+	//int i = gthid->PostThreadMessage(MSG_FIRE, 0, 0);
 
 	//logForPrjEx("postmsg:%d",i);
 	//logForPrjEx("gthid:%d",(int)gthid);
 
 	// 测试线程和事件触发
-	CWinThread* thread = AfxBeginThread(WorkThreadFunction,this);
+	CWinThread* thread = AfxBeginThread(WriteThreadFunction,this);
 	logForPrjEx("CWinThread:%d",(int)thread);
 	//thread = AfxBeginThread(WorkThreadFunction,this,THREAD_PRIORITY_NORMAL,0,0,NULL); 
 	
@@ -332,15 +334,23 @@ BSTR COcxFileCtrl::create(LPCTSTR path)
 	return strResult.AllocSysString();
 }
 
-// 文件内容读取
-BSTR COcxFileCtrl::read(LPCTSTR file) 
+UINT COcxFileCtrl::WriteThreadFunction(LPVOID pParam)
 {
-	CString strResult;
-	// TODO: Add your dispatch handler code here
+	return 0;
+}
+
+UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
+{
+	CWorkInfo *wi = (CWorkInfo *)pParam;
+	COcxFileCtrl *who = (COcxFileCtrl*)wi->who;
+	CString objfile = wi->para1;
+	delete wi;
+
+	logForPrjEx("开始任务，读取文件：%s", objfile );
     HANDLE pfile;
 	CRetMsg ret;
-	logForPrjEx("read file:%s", file);
-    pfile = ::CreateFile(file, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+
+    pfile = ::CreateFile(objfile, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
     if(pfile == INVALID_HANDLE_VALUE)
     {
@@ -358,31 +368,50 @@ BSTR COcxFileCtrl::read(LPCTSTR file)
 		logForPrjEx("内容读取完成");
 
 		// 字符转义
-		ret.retmsg = Array2HexString (buffer,filesize);
+		ret.retmsg = Array2HexString( buffer,filesize);
 		ret.retcode = 0;
 		logForPrjEx("内容转义完成");
 
 		delete[] buffer;
 	}
     
-	// 释放资源
+	// 释放文件
 	CloseHandle(pfile);
+	// 触发消息 返回内容
+	::PostMessage( who->m_hWnd, MSG_FIRE, (unsigned int)(new CString(ret.toJson())), 0);
+	
+	return 0;
+} 
 
+// 文件内容读取 即时返回
+// 文件读取完成之后触发事件 OptDone 返回包含文件信息的结构
+// 如果是文件夹 返回子目录的结构
+BSTR COcxFileCtrl::read(LPCTSTR file) 
+{
+	CString strResult;
+	CRetMsg ret;
+
+	// 开启独立的工作线程
+	CWorkInfo *wi = new CWorkInfo;
+	wi->who = this;
+	wi->para1 = file;
+	CWinThread* thread = AfxBeginThread(ReadThreadFunction,wi);
+	logForPrjEx("CWinThread:%d",(int)thread);
+	if(NULL == thread)
+	{
+		ret.retcode = GetLastError();
+		ret.retmsg = "fail";
+	}
+	else
+	{
+		ret.retcode = 0;
+		ret.retmsg = "success";
+	}
+	// 即时返回调用情况
+	// 不包含数据
 	strResult = ret.toJson();
 	return strResult.AllocSysString();
 }
-
-UINT COcxFileCtrl::WorkThreadFunction(LPVOID pParam)
-{
-
-	Sleep(1000);
-	 ::PostMessage(((COcxFileCtrl*)pParam)->m_hWnd,MSG_FIRE,0,0);
-	// 并发 log 有问题
-	//SendMessage(MSG_FIRE, 0, 0);
-	logForPrjEx("%d:%d",__LINE__,(int)gthid);
-	logForPrjEx("%d:%d",__LINE__,(int)AfxGetThread());
-	return 0;
-} 
 
 
 BSTR COcxFileCtrl::write(LPCTSTR file, LPCTSTR data) 
@@ -417,28 +446,3 @@ BSTR COcxFileCtrl::write(LPCTSTR file, LPCTSTR data)
 	return strResult.AllocSysString();
 }
 
-BOOL COcxFileCtrl::OnHelpInfo(HELPINFO* pHelpInfo) 
-{
-	// TODO: Add your message handler code here and/or call default
-	logForPrjEx("help");
-	return COleControl::OnHelpInfo(pHelpInfo);
-}
-
-BOOL COcxFileCtrl::OnQueryEndSession() 
-{
-	if (!COleControl::OnQueryEndSession())
-		return FALSE;
-	
-	// TODO: Add your specialized query end session code here
-	logForPrjEx("help");
-	
-	return TRUE;
-}
-
-void COcxFileCtrl::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized) 
-{
-	COleControl::OnActivate(nState, pWndOther, bMinimized);
-	
-	// TODO: Add your message handler code here
-	
-}

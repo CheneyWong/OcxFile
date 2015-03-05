@@ -39,9 +39,6 @@ protected:
 
 // Message maps
 	//{{AFX_MSG(COcxFileCtrl)
-	afx_msg BOOL OnHelpInfo(HELPINFO* pHelpInfo);
-	afx_msg BOOL OnQueryEndSession();
-	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	//}}AFX_MSG
 	afx_msg LRESULT OnMsgFire(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
@@ -66,7 +63,8 @@ protected:
 	DECLARE_EVENT_MAP()
 
 // Ïß³Ìº¯Êý
-	static UINT WorkThreadFunction(LPVOID pParam);
+	static UINT ReadThreadFunction(LPVOID pParam);
+	static UINT WriteThreadFunction(LPVOID pParam);
 
 // Dispatch and event IDs
 public:
