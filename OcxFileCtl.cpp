@@ -386,7 +386,7 @@ UINT COcxFileCtrl::WriteThreadFunction(LPVOID pParam)
 	}
 	else
 	{
-		SetFilePointer(hFile, 0, NULL, FILE_END);
+		// SetFilePointer(hFile, 0, NULL, FILE_END);
 		char *buffer = new char[data.GetLength()]; 
 		int len = HexString2Array(buffer,data.GetBuffer(data.GetLength()));
 
