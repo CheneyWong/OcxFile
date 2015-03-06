@@ -4,21 +4,47 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<script type="text/javascript" src="jquery.js"></script>
 		<title></title>
+        <style type="text/css">
+            #content{ clear: left;}
+        </style>
 	</head>
+
 	<body>
 	<div style="display:none;">
 		<OBJECT id="OcxFile" name="OcxFile" classid="clsid:3F08C971-449F-4588-853F-9E25DD73879B" data="C:/Windows/System32/OcxFile.ocx"></OBJECT>
 	</div>
-	<p>test</p>
+    <div id="content">
+    <h1>Ocxfile测试</h1>
+    <input type="text" id="path" placeholder="多重目录"/><button id="b_path">create</button>
+    <input type="text" id="rfile" placeholder="要读取的文件"/><button id="b_rfile">read</button>
+    <input type="text" id="wfile" placeholder="要写入的文件"/><button id="b_wfile">write</button>
+    <textarea type="text" ></textarea>
+    </div>
 
-<SCRIPT type="text/javascript" FOR="OcxFile" EVENT="optdone(msg)" >
-     alert(msg);
-</SCRIPT>
+
+    <SCRIPT type="text/javascript" FOR="OcxFile" EVENT="optdone(msg)" >
+         console.log("fire");
+    </SCRIPT>
 
 	<script type="text/javascript">
 	$(document).ready(function(){
-			var OcxFile = document.getElementById("OcxFile");		
-alert(OcxFile.create("D:\\100\\1000\\10000"));
+		var OcxFile = document.getElementById("OcxFile");
+        //alert(OcxFile.create("D:\\100\\1000\\10000"));
+        $("#b_path").click(function(){
+            var path = $("#path").val();
+            console.log("创建路径 ：" + path);
+            OcxFile.create(path);
+        });
+        $("#b_rfile").click(function(){
+            var file = $("#rfile").val();
+            console.log("读取文件 ：" + file);
+            OcxFile.read(file);
+        });
+        $("#b_wfile").click(function(){
+            var file = $("#wfile").val();
+            console.log("写入文件 ：" + file);
+            OcxFile.write(file,$("textarea").val());
+        });
 });
 
 		
