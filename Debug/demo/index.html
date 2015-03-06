@@ -1,24 +1,30 @@
-<DOCTYPE html>
+﻿<DOCTYPE html>
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<script type="text/javascript" src="jquery.js"></script>
 		<title></title>
         <style type="text/css">
-            #content{ clear: left;}
+        input,button,textarea{
+        	 float: left;
+        	 margin: 5 5 10 10;
+       		}
+	    input,textarea{
+	    		clear: left;
+	    	}
         </style>
 	</head>
 
 	<body>
-	<div style="display:none;">
-		<OBJECT id="OcxFile" name="OcxFile" classid="clsid:3F08C971-449F-4588-853F-9E25DD73879B" data="C:/Windows/System32/OcxFile.ocx"></OBJECT>
+	<div>
+		<OBJECT width="0" height="0" id="OcxFile" name="OcxFile" classid="clsid:3F08C971-449F-4588-853F-9E25DD73879B" data="C:/Windows/System32/OcxFile.ocx"></OBJECT>
 	</div>
     <div id="content">
     <h1>Ocxfile测试</h1>
     <input type="text" id="path" placeholder="多重目录"/><button id="b_path">create</button>
     <input type="text" id="rfile" placeholder="要读取的文件"/><button id="b_rfile">read</button>
     <input type="text" id="wfile" placeholder="要写入的文件"/><button id="b_wfile">write</button>
-    <textarea type="text" ></textarea>
+    <textarea type="text" placeholder="要写入的数据(HEX)"></textarea>
     </div>
 
 
