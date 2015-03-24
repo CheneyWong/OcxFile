@@ -14,9 +14,9 @@ Class2=COcxFilePropPage
 
 ResourceCount=2
 LastPage=0
-Resource1=IDD_ABOUTBOX_OCXFILE
+Resource1=IDD_PROPPAGE_OCXFILE
 Class3=CWorkInfo
-Resource2=IDD_PROPPAGE_OCXFILE
+Resource2=IDD_ABOUTBOX_OCXFILE
 
 [CLS:COcxFileCtrl]
 Type=0

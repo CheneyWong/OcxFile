@@ -12,6 +12,7 @@
 
 #include "string.h"
 #include "stdlib.h"
+#include "base64.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -387,13 +388,14 @@ UINT COcxFileCtrl::WriteThreadFunction(LPVOID pParam)
 	else
 	{
 		// SetFilePointer(hFile, 0, NULL, FILE_END);
-		char *buffer = new char[data.GetLength()]; 
-		int len = HexString2Array(buffer,data.GetBuffer(data.GetLength()));
+		//char *buffer = new char[data.GetLength()]; 
+		//int len = HexString2Array(buffer,data.GetBuffer(data.GetLength()));
+		std::string s = base64_decode( (LPCTSTR)data );
 
-		DWORD r = WriteFile(hFile, buffer, len, (LPDWORD)&writeLen, NULL);
+		DWORD r = WriteFile(hFile, s.c_str(), s.size(), (LPDWORD)&writeLen, NULL);
 		ret.retcode = 0;
 		ret.retmsg = "success";
-		delete[] buffer;
+		//delete[] buffer;
 	}
 
 	// 释放文件
@@ -435,7 +437,9 @@ UINT COcxFileCtrl::ReadThreadFunction(LPVOID pParam)
 		logForPrjEx("内容读取完成");
 
 		// 字符转义
-		ret.retmsg = Array2HexString( buffer,filesize);
+		// ret.retmsg = Array2HexString( buffer,filesize);
+		std::string s = base64_encode( (unsigned char *)buffer , filesize );
+		ret.retmsg = s.c_str();
 		ret.retcode = 0;
 		logForPrjEx("内容转义完成");
 
